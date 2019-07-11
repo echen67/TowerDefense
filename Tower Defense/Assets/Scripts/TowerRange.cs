@@ -5,20 +5,28 @@ using Unity.Collections;
 
 public class TowerRange : MonoBehaviour
 {
+    /// <summary>
+    /// Handles the tower's shooting
+    /// Currently targets the first enemy within range
+    /// </summary>
+
     public GameObject arrow;
+
     public List<GameObject> enemies;
     public bool enableShoot = false;
     public int shootTime = 50;
     public int timer = 0;
-    //GameObject first;
 
-    // Start is called before the first frame update
-    void Start()
+    private int shootSpeed = 5;
+    private LineRenderer line;
+
+    private void Start()
     {
-        
+        line = GetComponent<LineRenderer>();
+        DrawCircle(2);
     }
 
-    // Update is called once per frame
+    // Shoot every so often
     void Update()
     {
         if (enableShoot && timer >= shootTime)
@@ -27,14 +35,17 @@ public class TowerRange : MonoBehaviour
             GameObject firstEnemy = FindFirstEnemy();
             if (firstEnemy != null)
             {
-                Debug.Log("SHOOT");
                 GameObject arrowInstance = Instantiate(arrow, transform.parent.transform.position, Quaternion.identity);
-                arrowInstance.GetComponent<Rigidbody2D>().AddForce(firstEnemy.transform.position - arrowInstance.transform.position, ForceMode2D.Impulse);
+                Vector3 force = firstEnemy.transform.position - arrowInstance.transform.position;
+                arrowInstance.transform.rotation = Quaternion.LookRotation(Vector3.forward, force);
+                force = force.normalized * shootSpeed;
+                arrowInstance.GetComponent<Rigidbody2D>().AddForce(force, ForceMode2D.Impulse);
             }
         }
         timer++;
     }
 
+    // Find the first enemy within this tower's range
     public GameObject FindFirstEnemy()
     {
         if (enemies == null || enemies.Count == 0)
@@ -69,28 +80,42 @@ public class TowerRange : MonoBehaviour
         return first;
     }
 
+    // When an enemy enters the range, add it to the list
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log("TRIGGER");
-        Debug.Log(collision.tag);
         if (collision.tag == "Enemy" && enableShoot)
         {
-            if (enemies == null)
+            if (enemies == null || enemies.Count == 0)
             {
-                enemies.Add(collision.gameObject);
                 timer = shootTime;
-            } else
-            {
-                enemies.Add(collision.gameObject);
             }
+            enemies.Add(collision.gameObject);
         }
     }
 
+    // When an enemy leaves the range, remove it from the list
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.tag == "Enemy" && enableShoot)
         {
             enemies.Remove(collision.gameObject);
         }
+    }
+
+    private void DrawCircle(float radius)
+    {
+        float linewidth = 0.05f;
+        int segments = 32;
+        line.useWorldSpace = false;
+        line.positionCount = segments + 1;
+        line.startWidth = linewidth;
+        line.endWidth = linewidth;
+        Vector3[] points = new Vector3[segments + 1];
+        for (int i = 0; i < segments + 1; i++)
+        {
+            float rad = Mathf.Deg2Rad * (i * 360f / segments);
+            points[i] = new Vector3(Mathf.Sin(rad) * radius, Mathf.Cos(rad) * radius, 0);
+        }
+        line.SetPositions(points);
     }
 }
