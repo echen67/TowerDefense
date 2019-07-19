@@ -12,6 +12,12 @@ public class EnemyMovement : MonoBehaviour
     Transform[] waypoints;
     int waypointIndex = 0;
     float moveSpeed = 2f;
+    Vector3 velocity;
+
+    public Vector3 getVelocity()
+    {
+        return velocity;
+    }
 
     public int getWaypointIndex()
     {
@@ -37,5 +43,9 @@ public class EnemyMovement : MonoBehaviour
         {
             waypointIndex++;
         }
+
+        velocity = waypoints[waypointIndex].position - transform.position;
+        velocity.Normalize();
+        velocity *= moveSpeed;
     }
 }

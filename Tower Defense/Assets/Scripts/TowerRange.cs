@@ -36,13 +36,69 @@ public class TowerRange : MonoBehaviour
             if (firstEnemy != null)
             {
                 GameObject arrowInstance = Instantiate(arrow, transform.parent.transform.position, Quaternion.identity);
-                Vector3 force = firstEnemy.transform.position - arrowInstance.transform.position;
+                Vector3 enemyVelocity = firstEnemy.GetComponent<EnemyMovement>().getVelocity();
+                Vector3 target = ShootEnemy(firstEnemy.transform.position, enemyVelocity, transform.position, shootSpeed);
+                Vector3 force = target - arrowInstance.transform.position;
                 arrowInstance.transform.rotation = Quaternion.LookRotation(Vector3.forward, force);
                 force = force.normalized * shootSpeed;
                 arrowInstance.GetComponent<Rigidbody2D>().AddForce(force, ForceMode2D.Impulse);
             }
         }
         timer++;
+    }
+
+    //https://forum.unity.com/threads/projectile-trajectory-accounting-for-gravity-velocity-mass-distance.425560/
+    // use predictive aiming to shoot enemy
+    private Vector3 ShootEnemy(Vector3 enemyPosition, Vector3 enemyVelocity, Vector3 towerPosition, float arrowSpeed)
+    {
+        Vector3 enemyRelPos = enemyPosition - towerPosition;
+        Vector3 enemyRelVel = enemyVelocity;
+        float t = FirstInterceptTime(arrowSpeed, enemyRelPos, enemyRelVel);
+        return enemyPosition + t * (enemyRelVel);
+    }
+
+    private float FirstInterceptTime(float arrowSpeed, Vector3 enemyRelPos, Vector3 enemyRelVel)
+    {
+        float velocitySquared = enemyRelVel.sqrMagnitude;
+        if (velocitySquared < 0.001f)
+        {
+            return 0f;
+        }
+        float a = velocitySquared - arrowSpeed * arrowSpeed;
+
+        // handle similar velocities
+        if (Mathf.Abs(a) < 0.001f)
+        {
+            float t = -enemyRelPos.sqrMagnitude / (2f * Vector3.Dot(enemyRelVel, enemyRelPos));
+            return Mathf.Max(t, 0f);    //don't shoot back in time
+        }
+
+        float b = 2f * Vector3.Dot(enemyRelVel, enemyRelPos);
+        float c = enemyRelPos.sqrMagnitude;
+        float determinant = b * b - 4f * a * c;
+
+        if (determinant > 0f)
+        {
+            //determinant > 0; two intercept paths
+            float t1 = (-b + Mathf.Sqrt(determinant)) / (2f * a);
+            float t2 = (-b - Mathf.Sqrt(determinant)) / (2f * a);
+            if (t1 > 0f)
+            {
+                if (t2 > 0f)
+                    return Mathf.Min(t1, t2);   //both are positive
+                else
+                    return t1;  //only t1 is positive
+            }
+            else
+                return Mathf.Max(t2, 0f);   //don't shoot back in time
+        } else if (determinant < 0f)    //no intercept path
+        {
+            return 0f;
+        } else
+        {
+            // determinant = 0; one intercept path
+            return Mathf.Max(-b / (2f * a), 0f);    //don't shoot back in time
+        }
     }
 
     // Find the first enemy within this tower's range
