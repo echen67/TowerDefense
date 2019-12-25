@@ -8,10 +8,12 @@ public class Tower : MonoBehaviour
     protected bool canPlace = false;
     protected SpriteRenderer sprite;
 
+    private Money moneyScript;
+
     protected virtual void Start()
     {
-        //Debug.Log("STARTTTTT");
         sprite = GetComponent<SpriteRenderer>();
+        moneyScript = GameObject.FindGameObjectWithTag("Money").GetComponent<Money>();
     }
 
     protected virtual void Update()
@@ -25,10 +27,8 @@ public class Tower : MonoBehaviour
             {
                 isPlaced = true;
                 TowerManager.currentBuilding = null;
+                moneyScript.subtractMoney(10);
             }
-        } else
-        {
-
         }
     }
 

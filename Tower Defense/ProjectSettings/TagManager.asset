@@ -7,6 +7,9 @@ TagManager:
   - Waypoint
   - Tower
   - Enemy
+  - Arrow
+  - Money
+  - Health
   layers:
   - Default
   - TransparentFX
